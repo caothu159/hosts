@@ -5,10 +5,10 @@ import (
 	"github.com/google/gxui"
 	"log"
 	"os"
+	"time"
 )
 
 func getListHosts() []string {
-	// file, err := os.Open("/etc/hosts.deny")
 	file, err := os.Open("/etc/hosts")
 	if err != nil {
 		log.Fatal(err)
@@ -16,10 +16,11 @@ func getListHosts() []string {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
-	items := *[]string
 
 	for scanner.Scan() {
-		append(items, scanner.Text())
+		item := Host{}
+		item.fromString(scanner.Text())
+		lstHosts.append(item)
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -27,16 +28,18 @@ func getListHosts() []string {
 	}
 	defer file.Close()
 
-	return items
+	return lstHosts.getIps()
 }
 
 func ListHosts(theme gxui.Theme, overlay gxui.BubbleOverlay) gxui.Control {
 	adapter := gxui.CreateDefaultAdapter()
-	listHostsChan := make()
+	driver := theme.Driver()
 	go func() {
 		for {
-			<-listHostsChan
-			adapter.SetItems(getListHosts())
+			driver.CallSync(func() {
+				adapter.SetItems(getListHosts())
+			})
+			time.Sleep(1500 * time.Millisecond)
 		}
 	}()
 
